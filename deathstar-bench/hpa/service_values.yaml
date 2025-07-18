@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: compose-post-service
+  namespace: socialnetwork
+spec:
+  template:
+    spec:
+      containers:
+      - name: compose-post-service
+        resources:
+          requests:
+            cpu: "20m"
+          limits:
+            cpu: "20m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: text-service
+  namespace: socialnetwork
+spec:
+  template:
+    spec:
+      containers:
+      - name: text-service
+        resources:
+          requests:
+            cpu: "20m"
+          limits:
+            cpu: "20m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-mention-service
+  namespace: socialnetwork
+spec:
+  template:
+    spec:
+      containers:
+      - name: user-mention-service
+        resources:
+          requests:
+            cpu: "20m"
+          limits:
+            cpu: "20m"

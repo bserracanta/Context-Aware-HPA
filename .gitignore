@@ -1,0 +1,77 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Kubernetes secrets and config
+*.kubeconfig
+kubeconfig*
+secrets/
+*.secret
+*.key
+*.crt
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Reports and outputs
+k6/reports/*
+!k6/reports/.gitkeep
+*.csv
+*.json.gz
+
+# Compiled binaries
+k6/k6
+*/k6
+**/wrk
+
+# DeathStarBench cloned repository (if applicable)
+deathstar-bench/DeathStarBench/
+
+# Node modules (if any)
+node_modules/
+
+# Helm charts cache
+.helm/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+*.bak
+*.backup
+*.orig
