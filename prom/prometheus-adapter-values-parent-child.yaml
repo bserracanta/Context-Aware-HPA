@@ -171,15 +171,17 @@ rules:
       as: "text_service_with_parent_cpu_utilization_pct"
     metricsQuery: |
       (
-        sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="text-service"}[2m]))
+        0.65 * (
+          sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="text-service"}[2m]))
+          /
+          sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="text-service"})
+        )
         +
-        sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="compose-post-service"}[2m]))
-      )
-      /
-      (
-        sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="text-service"})
-        +
-        sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="compose-post-service"})
+        0.35 * (
+          sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="compose-post-service"}[2m]))
+          /
+          sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="compose-post-service"})
+        )
       ) * 100
 
   # user-mention-service + text-service combined CPU utilization percent
@@ -192,15 +194,17 @@ rules:
       as: "user_mention_with_parent_cpu_utilization_pct"
     metricsQuery: |
       (
-        sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="user-mention-service"}[2m]))
+        0.65 * (
+          sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="user-mention-service"}[2m]))
+          /
+          sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="user-mention-service"})
+        )
         +
-        sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="text-service"}[2m]))
-      )
-      /
-      (
-        sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="user-mention-service"})
-        +
-        sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="text-service"})
+        0.35 * (
+          sum(rate(container_cpu_usage_seconds_total{namespace="socialnetwork", container="text-service"}[2m]))
+          /
+          sum(kube_pod_container_resource_requests{resource="cpu", namespace="socialnetwork", container="text-service"})
+        )
       ) * 100
 
   default: false
