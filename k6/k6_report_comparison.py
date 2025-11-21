@@ -13,6 +13,8 @@ parser.add_argument('--b', '--comparison', dest='comparison_report', default='re
                     help='Comparison report CSV file path')
 parser.add_argument('--out', dest='output_file', default='reports/comparison_result.json',
                     help='Output JSON file for comparison results')
+parser.add_argument('--sample', dest='sample_size', type=int, default=None,
+                    help='Optional sample size per metric. If omitted, analyze full dataset (no sampling).')
 
 args = parser.parse_args()
 
@@ -22,7 +24,8 @@ COMPARISON_REPORT = args.comparison_report
 OUTPUT_FILE = args.output_file
 
 # Sampling configuration for speed
-SAMPLE_SIZE = 10000  # Number of rows to sample for analysis
+# If sample_size is None, analyze full dataset without sampling
+SAMPLE_SIZE = args.sample_size
 TIME_LIMIT = 1100    # Maximum time in seconds to analyze
 
 # Create plots directory if it doesn't exist
@@ -36,10 +39,10 @@ def extract_metric_data_fast(data, metric_name, sample_size=SAMPLE_SIZE):
     if len(metric_rows) == 0:
         return [], []
     
-    # Sample the data if it's too large
-    if len(metric_rows) > sample_size:
+    # Sample the data if requested (sample_size not None) and dataset is large
+    if sample_size is not None and len(metric_rows) > sample_size:
         # Use systematic sampling to get representative data
-        step = len(metric_rows) // sample_size
+        step = max(1, len(metric_rows) // sample_size)
         metric_rows = metric_rows.iloc[::step].head(sample_size)
     
     # Extract timestamps and values
@@ -56,6 +59,22 @@ def extract_metric_data_fast(data, metric_name, sample_size=SAMPLE_SIZE):
     # Keep only timestamps smaller than TIME_LIMIT
     filtered_data = [(ts, val) for ts, val in zip(normalized_timestamps, values) if ts < TIME_LIMIT]
     
+    if filtered_data:
+        return zip(*filtered_data)
+    return [], []
+
+def extract_metric_data_full(data, metric_name):
+    """Extract timestamp and value pairs for a specific metric without sampling"""
+    metric_rows = data[data.iloc[:, 0] == metric_name]
+    if len(metric_rows) == 0:
+        return [], []
+    timestamps = metric_rows.iloc[:, 1].astype(float).tolist()
+    values = metric_rows.iloc[:, 2].astype(float).tolist()
+    if not timestamps:
+        return [], []
+    first_timestamp = timestamps[0]
+    normalized_timestamps = [ts - first_timestamp for ts in timestamps]
+    filtered_data = [(ts, val) for ts, val in zip(normalized_timestamps, values) if ts < TIME_LIMIT]
     if filtered_data:
         return zip(*filtered_data)
     return [], []
@@ -257,7 +276,10 @@ if __name__ == "__main__":
     print(f"Base Report: {BASE_REPORT}")
     print(f"Comparison Report: {COMPARISON_REPORT}")
     print(f"Output File: {OUTPUT_FILE}")
-    print(f"Sampling {SAMPLE_SIZE} rows per metric for speed...")
+    if SAMPLE_SIZE is not None:
+        print(f"Sampling {SAMPLE_SIZE} rows per metric for speed...")
+    else:
+        print(f"Analyzing full dataset per metric (no sampling)...")
     
     # Load CSV files
     try:
@@ -270,25 +292,29 @@ if __name__ == "__main__":
         print(f"❌ Error: Could not find report file - {e}")
         exit(1)
     
-    # Extract metrics from both reports using fast sampling
-    print("⚡ Extracting metrics with sampling...")
-    timestamps_base, latencies_base = extract_metric_data_fast(data_base, 'http_req_duration')
-    _, http_reqs_base = extract_metric_data_fast(data_base, 'http_reqs')
-    _, http_failed_base = extract_metric_data_fast(data_base, 'http_req_failed')
-    _, checks_base = extract_metric_data_fast(data_base, 'checks')
-    _, data_sent_base = extract_metric_data_fast(data_base, 'data_sent')
-    _, data_received_base = extract_metric_data_fast(data_base, 'data_received')
-    _, iterations_base = extract_metric_data_fast(data_base, 'iterations')
-    _, iteration_duration_base = extract_metric_data_fast(data_base, 'iteration_duration')
-    
-    timestamps_comp, latencies_comp = extract_metric_data_fast(data_comp, 'http_req_duration')
-    _, http_reqs_comp = extract_metric_data_fast(data_comp, 'http_reqs')
-    _, http_failed_comp = extract_metric_data_fast(data_comp, 'http_req_failed')
-    _, checks_comp = extract_metric_data_fast(data_comp, 'checks')
-    _, data_sent_comp = extract_metric_data_fast(data_comp, 'data_sent')
-    _, data_received_comp = extract_metric_data_fast(data_comp, 'data_received')
-    _, iterations_comp = extract_metric_data_fast(data_comp, 'iterations')
-    _, iteration_duration_comp = extract_metric_data_fast(data_comp, 'iteration_duration')
+    # Extract metrics; when sampling is requested, only sample latencies for plotting,
+    # but compute aggregates (reqs, failures, data) from full data to avoid bias
+    print("⚡ Extracting metrics...")
+    # Latency arrays (sampled if SAMPLE_SIZE set)
+    timestamps_base, latencies_base = extract_metric_data_fast(data_base, 'http_req_duration', SAMPLE_SIZE)
+    timestamps_comp, latencies_comp = extract_metric_data_fast(data_comp, 'http_req_duration', SAMPLE_SIZE)
+
+    # Aggregation metrics from full data (no sampling)
+    _, http_reqs_base = extract_metric_data_full(data_base, 'http_reqs')
+    _, http_failed_base = extract_metric_data_full(data_base, 'http_req_failed')
+    _, checks_base = extract_metric_data_full(data_base, 'checks')
+    _, data_sent_base = extract_metric_data_full(data_base, 'data_sent')
+    _, data_received_base = extract_metric_data_full(data_base, 'data_received')
+    _, iterations_base = extract_metric_data_full(data_base, 'iterations')
+    _, iteration_duration_base = extract_metric_data_full(data_base, 'iteration_duration')
+
+    _, http_reqs_comp = extract_metric_data_full(data_comp, 'http_reqs')
+    _, http_failed_comp = extract_metric_data_full(data_comp, 'http_req_failed')
+    _, checks_comp = extract_metric_data_full(data_comp, 'checks')
+    _, data_sent_comp = extract_metric_data_full(data_comp, 'data_sent')
+    _, data_received_comp = extract_metric_data_full(data_comp, 'data_received')
+    _, iterations_comp = extract_metric_data_full(data_comp, 'iterations')
+    _, iteration_duration_comp = extract_metric_data_full(data_comp, 'iteration_duration')
     
     # Calculate high-level metrics for both reports
     print("📊 Calculating high-level metrics...")
